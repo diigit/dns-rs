@@ -10,13 +10,13 @@ use crate::dns_message::DNSMessageError;
 pub type DomainName = Vec<String>;
 
 pub struct DNSLabeler {
-    label_by_address: HashMap<usize, DomainName>,
+    name_by_address: HashMap<usize, DomainName>,
 }
 
 impl DNSLabeler {
     pub fn new() -> Self {
         DNSLabeler {
-            label_by_address: HashMap::new(),
+            name_by_address: HashMap::new(),
         }
     }
 
@@ -31,7 +31,7 @@ impl DNSLabeler {
         let mut domain_name = Vec::new();
 		let address = stream.position() as usize;
 
-		if self.label_by_address.contains_key(&address) {
+		if self.name_by_address.contains_key(&address) {
 			return Ok(address);
 		}
 
@@ -68,13 +68,13 @@ impl DNSLabeler {
                 .seek_relative((label_length + 1) as i64)?;
         }
 
-        self.label_by_address.insert(address, domain_name);
+        self.name_by_address.insert(address, domain_name);
 
 		Ok(address)
     }
 
 	pub fn get_domain_name(&self, address: &usize) -> Result<&DomainName, DNSMessageError> {
-		self.label_by_address.get(address).ok_or(DNSMessageError::DomainNameNotFound)
+		self.name_by_address.get(address).ok_or(DNSMessageError::DomainNameNotFound)
 	}
 }
 
