@@ -1,4 +1,8 @@
-use std::{array::TryFromSliceError, string::FromUtf8Error};
+use std::{array::TryFromSliceError, str::Utf8Error, string::FromUtf8Error};
+
+use bytes::TryGetError;
+
+// todo: clean up using macros
 
 #[derive(Debug)]
 pub enum DNSMessageError {
@@ -43,8 +47,20 @@ impl From<FromUtf8Error> for DNSMessageError {
 	}
 }
 
+impl From<Utf8Error> for DNSMessageError {
+	fn from(_: Utf8Error) -> Self {
+		DNSMessageError::InvalidCharacters
+	}
+}
+
 impl From<TryFromSliceError> for DNSMessageError {
 	fn from(value: TryFromSliceError) -> Self {
 		DNSMessageError::ByteSliceError(value)
+	}
+}
+
+impl From<TryGetError> for DNSMessageError {
+	fn from(_: TryGetError) -> Self {
+		DNSMessageError::ByteRead
 	}
 }

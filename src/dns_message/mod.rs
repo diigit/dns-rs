@@ -6,7 +6,7 @@ mod dns_question_section;
 use std::io::Cursor;
 
 use binrw::BinRead;
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 
 use dns_header::DNSHeader;
 use dns_labeler::DNSLabeler;
@@ -20,16 +20,13 @@ pub struct DNSMessage {
 }
 
 impl DNSMessage {
-    pub fn new(message_bytes: Bytes) -> Result<Self, DNSMessageError> {
-        let header_bytes: [u8; 12] = message_bytes[0..12].try_into()?;
-        let header = DNSHeader::read(&mut Cursor::new(header_bytes))?;
+    pub fn new(mut message_bytes: Bytes) -> Result<Self, DNSMessageError> {
+        let header = DNSHeader::read(&mut Cursor::new(message_bytes.clone()))?;
+        let mut labeler = DNSLabeler::new(message_bytes.clone());
 
-        let mut labeler = DNSLabeler::new();
-
-        let mut section_cursor = Cursor::new(message_bytes);
-        section_cursor.set_position(12);
+        message_bytes.advance(12);
         let question_section =
-            DNSQuestionSection::new(&mut labeler, &mut section_cursor, header.question_count)?;
+            DNSQuestionSection::new(&mut labeler, message_bytes, header.question_count)?;
 
         Ok(DNSMessage {
             header,

@@ -1,25 +1,27 @@
 use std::io::{Cursor, Seek};
 
 use bilge::prelude::*;
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 
 use crate::dns_message::{
     DNSMessageError,
-    dns_labeler::{DNSLabeler},
+    dns_labeler::{DNSLabeler, DomainNameReturn},
 };
 
 #[bitsize(16)]
 #[derive(FromBits, Debug)]
 pub enum QueryType {
     // TODO
-    #[fallback] Query,
+    #[fallback]
+    Query,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Debug)]
 pub enum QueryClass {
     // TODO
-    #[fallback] ExampleClass,
+    #[fallback]
+    ExampleClass,
 }
 
 #[derive(Debug)]
@@ -37,29 +39,25 @@ pub struct DNSQuestionSection {
 impl DNSQuestionSection {
     pub fn new(
         labeler: &mut DNSLabeler,
-        stream: &mut Cursor<Bytes>,
+        mut stream: Bytes,
         question_count: u16,
     ) -> Result<Self, DNSMessageError> {
         let mut questions = Vec::new();
 
         for _ in 0..question_count {
-            let address = labeler.read_domain_name(stream)?;
+            let DomainNameReturn { address, length } =
+                labeler.read_domain_name(stream.remaining())?;
 
-            stream.seek_relative(1)?;
+            stream.advance(length);
 
-			let pos = stream.position() as usize;
-			let buf = stream.get_ref();
-
-			let qtype_value: [u8; 2] = buf[pos..pos + 2].try_into()?;
-			let qclass_value: [u8; 2] = buf[pos + 2..pos + 4].try_into()?;
+            let qtype_value = stream.try_get_u16()?;
+            let qclass_value: u16 = stream.try_get_u16()?;
 
             questions.push(DNSQuestion {
                 name_address: address,
-                qtype: QueryType::from(u16::from_be_bytes(qtype_value)),
-                qclass: QueryClass::from(u16::from_be_bytes(qclass_value)),
+                qtype: QueryType::from(qtype_value),
+                qclass: QueryClass::from(qclass_value),
             });
-
-			stream.seek_relative(4)?;
         }
 
         Ok(DNSQuestionSection { questions })

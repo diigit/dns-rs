@@ -1,107 +1,143 @@
 use std::{
     collections::HashMap,
     io::{Cursor, Seek},
+    ops::Range,
 };
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 
 use crate::dns_message::DNSMessageError;
 
-pub type DomainName = Vec<String>;
+pub type DomainNameRanges = Vec<Range<usize>>;
+pub type DomainName<'a> = Vec<&'a str>;
 
 pub struct DNSLabeler {
-    name_by_address: HashMap<usize, DomainName>,
+    stream: Bytes,
+    name_range_by_address: HashMap<usize, DomainNameRanges>,
+}
+
+pub struct DomainNameReturn {
+    pub address: usize,
+    pub length: usize,
 }
 
 impl DNSLabeler {
-    pub fn new() -> Self {
+    pub fn new(stream: Bytes) -> Self {
         DNSLabeler {
-            name_by_address: HashMap::new(),
+            name_range_by_address: HashMap::new(),
+            stream,
         }
     }
 
-	// todo: make more honest
-	// be more transparent about how the stream is manipulated
-	// the function places the cursor at the end byte of the label (a null byte probably)
-    // also make this more secure lol
+    // todo: make sure it can handle edge cases without crashing and burning (address OOB, infinite looping label, etc)
     pub fn read_domain_name(
         &mut self,
-        stream: &mut Cursor<Bytes>,
-    ) -> Result<usize, DNSMessageError> {
+        address: usize,
+    ) -> Result<DomainNameReturn, DNSMessageError> {
         let mut domain_name = Vec::new();
-		let address = stream.position() as usize;
 
-		if self.name_by_address.contains_key(&address) {
-			return Ok(address);
-		}
+        if self.name_range_by_address.contains_key(&address) {
+            return Ok(DomainNameReturn { address, length: 0 });
+        }
 
+        let mut ptr = self.stream.clone();
+        let mut ptr_offset: usize = 0;
+
+        let (advance_by, overflow) = self.stream.remaining().overflowing_sub(address);
+        if overflow {
+            return Err(DNSMessageError::ByteRead);
+        }
+        ptr.advance(advance_by);
+        
         loop {
-			let position = stream.position() as usize;
-            let first_byte = stream.get_ref()[position];
-            if first_byte == 0 {
-                break;
-            }
+            let first_byte = ptr[0];
 
             let label_type = first_byte >> 6;
             let label_length = (first_byte & 0x3F) as usize;
 
-			// RFC 6891 (eDNS(0)) Unimplemented
-			if label_type == 2 {
-				todo!();
-			}
+            // RFC 6891 (eDNS(0)) Unimplemented
+            if label_type == 2 {
+                todo!();
+            }
 
-			if label_type == 3 {
-				let address = label_length;
-				return Ok(address);
-			}
+            if label_type == 3 {
+                let address = self.stream.remaining() - label_length;
+                return Ok(DomainNameReturn {
+                    address,
+                    length: ptr_offset,
+                });
+            }
 
-            let bytes: Vec<u8> = stream
-                .get_ref()
-                .slice(position + 1..=position + label_length)
-                .into_iter()
-                .collect();
-            let string = String::from_utf8(bytes)?;
+            // If the label starting byte is null then break
+            if label_length == 0 {
+                ptr_offset += 1;
+                break;
+            }
 
-            domain_name.push(string);
+            // range for stream pointer owned by struct, not the ptr variable
+            let absolute_range =
+                advance_by + ptr_offset + 1..advance_by + label_length + ptr_offset + 1;
+            domain_name.push(absolute_range);
 
-            stream
-                .seek_relative((label_length + 1) as i64)?;
+            ptr.advance(label_length + 1);
+            ptr_offset += label_length + 1;
         }
 
-        self.name_by_address.insert(address, domain_name);
+        self.name_range_by_address.insert(address, domain_name);
 
-		Ok(address)
+        Ok(DomainNameReturn {
+            address,
+            length: ptr_offset,
+        })
     }
 
-	pub fn get_domain_name(&self, address: &usize) -> Result<&DomainName, DNSMessageError> {
-		self.name_by_address.get(address).ok_or(DNSMessageError::DomainNameNotFound)
-	}
+    pub fn get_domain_name<'a>(
+        &'a self,
+        address: &usize,
+    ) -> Result<DomainName<'a>, DNSMessageError> {
+        let label_ranges = self
+            .name_range_by_address
+            .get(address)
+            .ok_or(DNSMessageError::DomainNameNotFound)?;
+
+        let mut domain_name = Vec::new();
+
+        for range in label_ranges {
+            domain_name.push(str::from_utf8(&self.stream[range.clone()])?);
+        }
+
+        Ok(domain_name)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const HELLO_WORLD_NAME: &[u8; 15] = b"\x05Hello\x06World!\0\xC0";
+
     #[test]
     fn domain_name_read_test() {
-        let mut labeler = DNSLabeler::new();
+        let mut bytes_stream = Bytes::from_static(HELLO_WORLD_NAME);
+        let mut labeler = DNSLabeler::new(bytes_stream.clone());
 
-        let mut bytes_stream = Cursor::new(Bytes::from_static(
-            b"\x05\x48\x65\x6C\x6C\x6F\x05\x57\x6F\x72\x6C\x64\0\xC0",
-        ));
-		
-		let address = labeler.read_domain_name(&mut bytes_stream).unwrap();
-		assert_eq!(address, 0);
+        // test initial label parsing
+        let DomainNameReturn { address, length } =
+            labeler.read_domain_name(bytes_stream.remaining()).unwrap();
+        assert_eq!(address, 15);
         assert_eq!(
             *labeler.get_domain_name(&address).unwrap(),
-            vec!["Hello".to_owned(), "World".to_owned()]
+            vec!["Hello", "World!"]
         );
 
-		bytes_stream.seek_relative(1).unwrap();
-		let address = labeler.read_domain_name(&mut bytes_stream).unwrap();
+        bytes_stream.advance(length);
+
+        // test retrieval
+        let DomainNameReturn { address, length: _ } =
+            labeler.read_domain_name(bytes_stream.remaining()).unwrap();
         assert_eq!(
             *labeler.get_domain_name(&address).unwrap(),
-            vec!["Hello".to_owned(), "World".to_owned()]
+            vec!["Hello", "World!"]
         );
     }
 }
