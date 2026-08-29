@@ -9,7 +9,7 @@ use crate::dns_message::{
 };
 
 #[bitsize(16)]
-#[derive(FromBits, Debug)]
+#[derive(FromBits, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryType {
     // TODO
     #[fallback]
@@ -17,7 +17,7 @@ pub enum QueryType {
 }
 
 #[bitsize(16)]
-#[derive(FromBits, Debug)]
+#[derive(FromBits, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QueryClass {
     // TODO
     #[fallback]
