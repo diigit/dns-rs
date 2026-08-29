@@ -45,7 +45,7 @@ impl DNSLabeler {
 
         let (advance_by, overflow) = self.stream.remaining().overflowing_sub(address);
         if overflow {
-            return Err(DNSMessageError::ByteRead);
+            return Err(DNSMessageError::DomainNameOOB);
         }
         ptr.advance(advance_by);
         
