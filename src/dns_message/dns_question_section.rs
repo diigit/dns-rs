@@ -1,5 +1,3 @@
-use std::io::{Cursor, Seek};
-
 use bilge::prelude::*;
 use bytes::{Buf, Bytes};
 

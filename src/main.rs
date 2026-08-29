@@ -6,7 +6,6 @@ use bytes::Bytes;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use dns_message::DNSMessage;
-use thiserror::Error;
 
 #[derive(Parser)]
 #[command(name = "dns-rs")]
@@ -39,16 +38,6 @@ struct WriteArgs {}
 enum Commands {
     Read(ReadArgs),
     Write(WriteArgs),
-}
-
-#[derive(Error, Debug)]
-#[error("Encountered error while reading CLI arguments.")]
-enum CliError {
-    #[error("Feature not implemented.")]
-    NotImplemented,
-
-    #[error("Error while trying to find file from path given.")]
-    FileNotFound(#[from] std::io::Error),
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
