@@ -5,7 +5,7 @@ use std::{error::Error, fs, path::PathBuf};
 use bytes::Bytes;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use dns_message::DNSMessage;
+use dns_message::DnsMessage;
 
 #[derive(Parser)]
 #[command(name = "dns-rs")]
@@ -17,7 +17,7 @@ struct Cli {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum DNSMessageSectionOption {
+enum DnsMessageSectionOption {
     Header,
     Question,
     All,
@@ -25,7 +25,7 @@ enum DNSMessageSectionOption {
 #[derive(Args)]
 struct ReadArgs {
     #[arg(short, long)]
-    section: DNSMessageSectionOption,
+    section: DnsMessageSectionOption,
 
     file: PathBuf,
 }
@@ -46,13 +46,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     match cli.command {
         Commands::Read(args) => {
             let packet_bytes = fs::read(args.file)?;
-            let message = DNSMessage::new(Bytes::from_owner(packet_bytes))?;
+            let message = DnsMessage::new(Bytes::from_owner(packet_bytes))?;
 
             match args.section {
-                DNSMessageSectionOption::Header => {
+                DnsMessageSectionOption::Header => {
                     println!("{:?}", message.header);
                 }
-                DNSMessageSectionOption::Question => {
+                DnsMessageSectionOption::Question => {
                     let questions = message.question_section.get_questions();
                     questions.iter().for_each(|question| {
                         let name: String = message
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         println!("Domain Name: {name}\nQuery Type: {:?}\nQuery Class: {:?}", qtype, qclass)
                     });
                 }
-                DNSMessageSectionOption::All => {
+                DnsMessageSectionOption::All => {
                     todo!();
                 }
             }

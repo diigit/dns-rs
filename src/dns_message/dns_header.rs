@@ -3,7 +3,7 @@ use binrw::{BinRead, BinWrite, binrw};
 
 #[bitsize(4)]
 #[derive(Debug, FromBits, PartialEq, Eq)]
-pub enum DNSOpcode {
+pub enum DnsOpcode {
     Query,
     InverseQuery,
     ServerStatusRequest,
@@ -13,7 +13,7 @@ pub enum DNSOpcode {
 
 #[bitsize(4)]
 #[derive(Debug, FromBits, PartialEq, Eq)]
-pub enum DNSResponseCode {
+pub enum DnsResponseCode {
     NoError,
     FormatError,
     ServerFailure,
@@ -28,24 +28,24 @@ pub enum DNSResponseCode {
 #[derive(FromBits, BinRead, BinWrite, DebugBits, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = |x: u16| { Self::from(x) })]
 #[bw(big, map = |x: &Self| { u16::from(*x) } )]
-pub struct DNSHeaderFlags {
-    pub response_code: DNSResponseCode,
+pub struct DnsHeaderFlags {
+    pub response_code: DnsResponseCode,
     pub z: u3,
     pub recursion_authorized: bool,
     pub recursion_desired: bool,
     pub truncated: bool,
     pub authoritative_answer: bool,
-    pub opcode: DNSOpcode,
+    pub opcode: DnsOpcode,
     pub is_response: bool,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct DNSHeader {
+pub struct DnsHeader {
     pub id: u16,
 
-    pub flags: DNSHeaderFlags,
+    pub flags: DnsHeaderFlags,
 
     pub question_count: u16,
     pub answer_count: u16,
@@ -63,11 +63,11 @@ mod tests {
 
     #[test]
     fn test_opcode_read() {
-        let opcode_inverse_query = DNSOpcode::from(u4::new(1));
-        let opcode_reserved = DNSOpcode::from(u4::new(5));
+        let opcode_inverse_query = DnsOpcode::from(u4::new(1));
+        let opcode_reserved = DnsOpcode::from(u4::new(5));
 
-        assert_eq!(opcode_inverse_query, DNSOpcode::InverseQuery);
-        assert_eq!(opcode_reserved, DNSOpcode::Reserved);
+        assert_eq!(opcode_inverse_query, DnsOpcode::InverseQuery);
+        assert_eq!(opcode_reserved, DnsOpcode::Reserved);
 
         let code: u4 = opcode_inverse_query.into();
 
@@ -77,24 +77,24 @@ mod tests {
     #[test]
     fn test_flags_read() {
         let mut flags_bin = Cursor::new((0b1_0100_0_0_0_0_110_0001u16).to_be_bytes());
-        let flags = DNSHeaderFlags::read(&mut flags_bin).unwrap();
+        let flags = DnsHeaderFlags::read(&mut flags_bin).unwrap();
 
         assert_eq!(u8::from(flags.z()), 6);
         assert_eq!(flags.is_response(), true);
-        assert_eq!(flags.response_code(), DNSResponseCode::FormatError);
-        assert_eq!(flags.opcode(), DNSOpcode::Reserved);
+        assert_eq!(flags.response_code(), DnsResponseCode::FormatError);
+        assert_eq!(flags.opcode(), DnsOpcode::Reserved);
     }
 
     #[test]
     fn test_flags_write() {
-        let flags = DNSHeaderFlags::new(
-            DNSResponseCode::NoError,
+        let flags = DnsHeaderFlags::new(
+            DnsResponseCode::NoError,
             u3::new(2),
             true,
             false,
             true,
             false,
-            DNSOpcode::Query,
+            DnsOpcode::Query,
             false,
         );
         let mut stream: Cursor<Vec<u8>> = Cursor::new(Vec::new());
@@ -121,20 +121,20 @@ mod tests {
             .flatten()
             .collect(),
         );
-        let header = DNSHeader::read_be(&mut header_bin).unwrap();
+        let header = DnsHeader::read_be(&mut header_bin).unwrap();
 
         assert_eq!(
             header,
-            DNSHeader {
+            DnsHeader {
                 id: 65535,
-                flags: DNSHeaderFlags::new(
-                    DNSResponseCode::NoError,
+                flags: DnsHeaderFlags::new(
+                    DnsResponseCode::NoError,
                     u3::new(2),
                     true,
                     false,
                     true,
                     false,
-                    DNSOpcode::Query,
+                    DnsOpcode::Query,
                     false,
                 ),
 				question_count: 8,

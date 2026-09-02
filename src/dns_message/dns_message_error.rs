@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-#[error("Error occured while reading/writing the DNS message.")]
-pub enum DNSMessageError {
+#[error("Error occured while reading/writing the Dns message.")]
+pub enum DnsMessageError {
 	#[error("Attempted to find a domain name at an address that doesn\'t have a domain name.")]
 	DomainNameNotFound,
 

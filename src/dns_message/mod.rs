@@ -2,33 +2,34 @@ mod dns_header;
 mod dns_labeler;
 mod dns_message_error;
 mod dns_question_section;
+mod dns_rr_section;
 
 use std::io::Cursor;
 
 use binrw::BinRead;
 use bytes::{Buf, Bytes};
 
-use dns_header::DNSHeader;
-use dns_labeler::DNSLabeler;
-use dns_message_error::DNSMessageError;
-use dns_question_section::DNSQuestionSection;
+use dns_header::DnsHeader;
+use dns_labeler::DnsLabeler;
+use dns_message_error::DnsMessageError;
+use dns_question_section::DnsQuestionSection;
 
-pub struct DNSMessage {
-    pub header: DNSHeader,
-    pub labeler: DNSLabeler,
-    pub question_section: DNSQuestionSection,
+pub struct DnsMessage {
+    pub header: DnsHeader,
+    pub labeler: DnsLabeler,
+    pub question_section: DnsQuestionSection,
 }
 
-impl DNSMessage {
-    pub fn new(mut message_bytes: Bytes) -> Result<Self, DNSMessageError> {
-        let header = DNSHeader::read(&mut Cursor::new(message_bytes.clone()))?;
-        let mut labeler = DNSLabeler::new(message_bytes.clone());
+impl DnsMessage {
+    pub fn new(mut message_bytes: Bytes) -> Result<Self, DnsMessageError> {
+        let header = DnsHeader::read(&mut Cursor::new(message_bytes.clone()))?;
+        let mut labeler = DnsLabeler::new(message_bytes.clone());
 
         message_bytes.advance(12);
         let question_section =
-            DNSQuestionSection::new(&mut labeler, message_bytes, header.question_count)?;
+            DnsQuestionSection::new(&mut labeler, message_bytes, header.question_count)?;
 
-        Ok(DNSMessage {
+        Ok(DnsMessage {
             header,
             labeler,
             question_section,
