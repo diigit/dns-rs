@@ -8,25 +8,25 @@ use crate::dns_message::{
 
 #[bitsize(16)]
 #[derive(FromBits, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum QueryType {
+pub enum DnsQuestionType {
     // TODO
     #[fallback]
-    Query,
+    Todo,
 }
 
 #[bitsize(16)]
 #[derive(FromBits, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum QueryClass {
+pub enum DnsQuestionClass {
     // TODO
     #[fallback]
-    ExampleClass,
+    Todo,
 }
 
 #[derive(Debug)]
 pub struct DnsQuestion {
     pub name_address: usize,
-    pub qtype: QueryType,
-    pub qclass: QueryClass,
+    pub qtype: DnsQuestionType,
+    pub qclass: DnsQuestionClass,
 }
 
 #[derive(Debug)]
@@ -53,8 +53,8 @@ impl DnsQuestionSection {
 
             questions.push(DnsQuestion {
                 name_address: address,
-                qtype: QueryType::from(qtype_value),
-                qclass: QueryClass::from(qclass_value),
+                qtype: DnsQuestionType::from(qtype_value),
+                qclass: DnsQuestionClass::from(qclass_value),
             });
         }
 
