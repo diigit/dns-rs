@@ -32,7 +32,6 @@ pub struct Question<'a> {
 #[derive(Debug)]
 struct QuestionPtr {
     address: usize,
-    name_size: usize,
     qtype: u16,
     qclass: u16,
 }
@@ -40,7 +39,6 @@ struct QuestionPtr {
 #[derive(Debug)]
 pub struct QuestionSection {
     questions: Vec<QuestionPtr>,
-    message_stream: Bytes,
 }
 
 impl QuestionSection {
@@ -61,7 +59,6 @@ impl QuestionSection {
 
             questions.push(QuestionPtr {
                 address,
-                name_size: length,
                 qtype: question_stream.get_u16(),
                 qclass: question_stream.get_u16(),
             });
@@ -69,7 +66,6 @@ impl QuestionSection {
 
         Ok(QuestionSection {
             questions,
-            message_stream,
         })
     }
 
