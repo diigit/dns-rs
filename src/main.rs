@@ -53,12 +53,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("{:?}", message.header);
                 }
                 MessageSectionOption::Question => {
-                    let questions = message.question_section.get_questions();
-                    questions.iter().for_each(|question| {
-                        let name: String = message
-                            .labeler
-                            .get_domain_name(&question.name_address)
-                            .expect("Unable to parse domain name address.")
+                    let questions = message.question_section.get_iter(&message.labeler);
+                    questions.for_each(|question| {
+                        let name: String = question
+                            .name
                             .iter()
                             .map(|label| String::from(*label) + ".")
                             .collect();
@@ -82,4 +80,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     Ok(())
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    pub fn get_query_msg() -> message::Message {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_files/query_packet.txt");
+
+        Message::new(Bytes::from_owner(fs::read(path).unwrap())).unwrap()
+    }
+
+    pub fn get_response_msg() -> message::Message {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_files/response_packet.txt");
+
+        Message::new(Bytes::from_owner(fs::read(path).unwrap())).unwrap()
+    }
 }
