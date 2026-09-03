@@ -5,12 +5,12 @@ use std::{
 
 use bytes::{Buf, Bytes};
 
-use crate::dns_message::DnsMessageError;
+use crate::message::MessageError;
 
 pub type DomainNameRanges = Vec<Range<usize>>;
 pub type DomainName<'a> = Vec<&'a str>;
 
-pub struct DnsLabeler {
+pub struct Labeler {
     stream: Bytes,
     name_range_by_address: HashMap<usize, DomainNameRanges>,
 }
@@ -20,9 +20,9 @@ pub struct DomainNameReturn {
     pub length: usize,
 }
 
-impl DnsLabeler {
+impl Labeler {
     pub fn new(stream: Bytes) -> Self {
-        DnsLabeler {
+        Labeler {
             name_range_by_address: HashMap::new(),
             stream,
         }
@@ -32,7 +32,7 @@ impl DnsLabeler {
     pub fn read_domain_name(
         &mut self,
         address: usize,
-    ) -> Result<DomainNameReturn, DnsMessageError> {
+    ) -> Result<DomainNameReturn, MessageError> {
         let mut domain_name = Vec::new();
 
         if self.name_range_by_address.contains_key(&address) {
@@ -44,7 +44,7 @@ impl DnsLabeler {
 
         let (advance_by, overflow) = self.stream.remaining().overflowing_sub(address);
         if overflow {
-            return Err(DnsMessageError::DomainNameOOB);
+            return Err(MessageError::DomainNameOOB);
         }
         ptr.advance(advance_by);
         
@@ -54,7 +54,7 @@ impl DnsLabeler {
             let label_type = first_byte >> 6;
             let label_length = (first_byte & 0x3F) as usize;
 
-            // RFC 6891 (eDns(0)) Unimplemented
+            // RFC 6891 (e(0)) Unimplemented
             if label_type == 2 {
                 todo!();
             }
@@ -93,11 +93,11 @@ impl DnsLabeler {
     pub fn get_domain_name<'a>(
         &'a self,
         address: &usize,
-    ) -> Result<DomainName<'a>, DnsMessageError> {
+    ) -> Result<DomainName<'a>, MessageError> {
         let label_ranges = self
             .name_range_by_address
             .get(address)
-            .ok_or(DnsMessageError::DomainNameNotFound)?;
+            .ok_or(MessageError::DomainNameNotFound)?;
 
         let mut domain_name = Vec::new();
 
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn domain_name_read_test() {
         let mut bytes_stream = Bytes::from_static(HELLO_WORLD_NAME);
-        let mut labeler = DnsLabeler::new(bytes_stream.clone());
+        let mut labeler = Labeler::new(bytes_stream.clone());
 
         // test initial label parsing
         let DomainNameReturn { address, length } =
