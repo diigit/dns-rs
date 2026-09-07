@@ -46,7 +46,7 @@ impl Labeler {
             let first_byte = ptr[0];
 
             let label_type = first_byte >> 6;
-            let label_length = (first_byte & 0x3F) as usize;
+            let label_length = first_byte & 0x3F;
 
             // RFC 6891 (e(0)) Unimplemented
             if label_type == 2 {
@@ -54,9 +54,10 @@ impl Labeler {
             }
 
             if label_type == 3 {
-                let address = self.stream.remaining() - label_length;
+                let address = u16::from_be_bytes([label_length, ptr[1]]);
+                let rev_address = self.stream.remaining() - (address as usize);
                 return Ok(DomainNameReturn {
-                    address,
+                    address: rev_address,
                     length: ptr_offset + 1,
                 });
             }
@@ -69,11 +70,11 @@ impl Labeler {
 
             // range for stream pointer owned by struct, not the ptr variable
             let absolute_range =
-                advance_by + ptr_offset + 1..advance_by + label_length + ptr_offset + 1;
+                advance_by + ptr_offset + 1..advance_by + (label_length as usize) + ptr_offset + 1;
             domain_name.push(absolute_range);
 
-            ptr.advance(label_length + 1);
-            ptr_offset += label_length + 1;
+            ptr.advance((label_length as usize) + 1);
+            ptr_offset += (label_length as usize) + 1;
         }
 
         self.name_range_by_address.insert(address, domain_name);
@@ -104,7 +105,7 @@ impl Labeler {
 mod tests {
     use super::*;
 
-    const HELLO_WORLD_NAME: &[u8; 15] = b"\x05Hello\x06World!\0\xC0";
+    const HELLO_WORLD_NAME: &[u8; 16] = b"\x05Hello\x06World!\0\xC0\0";
 
     #[test]
     fn domain_name_read_test() {
@@ -114,7 +115,7 @@ mod tests {
         // test initial label parsing
         let DomainNameReturn { address, length } =
             labeler.read_domain_name(bytes_stream.remaining()).unwrap();
-        assert_eq!(address, 15);
+        assert_eq!(address, 16);
         assert_eq!(
             *labeler.get_domain_name(&address).unwrap(),
             vec!["Hello", "World!"]
