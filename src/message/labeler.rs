@@ -57,7 +57,7 @@ impl Labeler {
                 let address = self.stream.remaining() - label_length;
                 return Ok(DomainNameReturn {
                     address,
-                    length: ptr_offset,
+                    length: ptr_offset + 1,
                 });
             }
 
