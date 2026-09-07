@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("{:?}", message.header);
                 }
                 MessageSectionOption::Question => {
-                    let questions = message.question_section.get_iter(&message.labeler);
+                    let questions = message.iter_questions();
                     questions.for_each(|question| {
                         let name: String = question
                             .name

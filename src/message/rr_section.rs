@@ -16,16 +16,16 @@ pub enum ResourceRecordClass {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ResourceRecord {
+pub struct ResourceRecordRaw {
     name_address: usize,
-    rr_type: ResourceRecordType,
-    rr_class: ResourceRecordClass,
+    rr_type: u16,
+    rr_class: u16,
     time_to_live: u32,
     resource_data_length: u16,
     resource_data: Bytes,
 }
 
-impl ResourceRecord {}
+impl ResourceRecordRaw {}
 
 pub struct RrSection {}
 

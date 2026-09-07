@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    ops::Range,
-};
+use std::{collections::HashMap, ops::Range};
 
 use bytes::{Buf, Bytes};
 
@@ -29,10 +26,7 @@ impl Labeler {
     }
 
     // todo: make sure it can handle edge cases without crashing and burning (address OOB, infinite looping label, etc)
-    pub fn read_domain_name(
-        &mut self,
-        address: usize,
-    ) -> Result<DomainNameReturn, MessageError> {
+    pub fn read_domain_name(&mut self, address: usize) -> Result<DomainNameReturn, MessageError> {
         let mut domain_name = Vec::new();
 
         if self.name_range_by_address.contains_key(&address) {
@@ -47,7 +41,7 @@ impl Labeler {
             return Err(MessageError::DomainNameOOB);
         }
         ptr.advance(advance_by);
-        
+
         loop {
             let first_byte = ptr[0];
 
@@ -90,10 +84,7 @@ impl Labeler {
         })
     }
 
-    pub fn get_domain_name<'a>(
-        &'a self,
-        address: &usize,
-    ) -> Result<DomainName<'a>, MessageError> {
+    pub fn get_domain_name<'a>(&'a self, address: &usize) -> Result<DomainName<'a>, MessageError> {
         let label_ranges = self
             .name_range_by_address
             .get(address)
