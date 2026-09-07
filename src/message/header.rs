@@ -48,8 +48,8 @@ pub struct Header {
     pub flags: HeaderFlags,
 
     pub question_count: u16,
-    pub answer_count: u16,
-    pub name_server_record_count: u16,
+    pub answer_record_count: u16,
+    pub authority_record_count: u16,
     pub additional_record_count: u16,
 }
 
@@ -138,8 +138,8 @@ mod tests {
                     false,
                 ),
 				question_count: 8,
-				answer_count: 16,
-				name_server_record_count: 32,
+				answer_record_count: 16,
+				authority_record_count: 32,
 				additional_record_count: 64,
             }
         );
