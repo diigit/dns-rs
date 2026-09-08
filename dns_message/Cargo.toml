@@ -1,0 +1,13 @@
+[package]
+name = "dns-message"
+version = "0.1.0"
+edition = "2024"
+description = "DNS message serializer/deserializer"
+
+[dependencies]
+bilge = "0.4.0"
+binrw = "0.15.2"
+bytes = "1.12.0"
+clap = { version = "4.6.6", features = ["derive"] }
+enum-map = "3.1.0"
+thiserror = "2.0.20"

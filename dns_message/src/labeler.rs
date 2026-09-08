@@ -1,8 +1,7 @@
-use std::{collections::HashMap, ops::Range};
+use super::MessageError;
 
 use bytes::{Buf, Bytes};
-
-use crate::message::MessageError;
+use std::{collections::HashMap, ops::Range};
 
 pub type DomainNameRanges = Vec<Range<usize>>;
 pub type DomainName<'a> = Vec<&'a str>;

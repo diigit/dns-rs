@@ -231,7 +231,21 @@ impl<'a> std::iter::Iterator for RrSectionIter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::{get_query_msg, get_response_msg};
+    use std::{fs, path::PathBuf};
+
+    pub fn get_query_msg() -> Message {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_files/query_packet.txt");
+
+        Message::new(Bytes::from_owner(fs::read(path).unwrap())).unwrap()
+    }
+
+    pub fn get_response_msg() -> Message {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_files/response_packet.txt");
+
+        Message::new(Bytes::from_owner(fs::read(path).unwrap())).unwrap()
+    }
 
     #[test]
     fn test_question_section() {
